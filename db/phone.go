@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
@@ -81,7 +80,7 @@ func createPhoneNumbersTable(db *sql.DB) error {
 	statement := `CREATE TABLE IF NOT EXISTS phone_numbers (
 		id SERIAL, 
 		value VARCHAR(255)
-	)` 
+	)`
 
 	_, err := db.Exec(statement)
 	return err
@@ -134,15 +133,14 @@ func (db *DB) AllPhones() ([]Phone, error) {
 
 func (db *DB) FindPhone(number string) (*Phone, error) {
 	var p Phone
-	row := db.db.QueryRow("SELECT id, value FROM phone_numbers WHERE value=$1", number)
+	row := db.db.QueryRow("SELECT * FROM phone_numbers WHERE value=$1", number)
 	err := row.Scan(&p.ID, &p.Number)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Println("No phone number found")
+			return nil, nil
 		} else {
 			return nil, err
 		}
-
 	}
 	return &p, nil
 }
