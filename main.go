@@ -36,6 +36,27 @@ func main() {
 
 	err = db.Seed()
 	must(err)
+
+	phones, err := db.AllPhones()
+	must(err)
+	for _, p := range phones {
+		fmt.Printf("Working on... %+v\n", p)
+		number := normalizeNumber(p.Number)
+		if number != p.Number {
+			fmt.Println("Updating or removing.......", number)
+			existing, err := db.FindPhone(number)
+			must(err)
+			if existing != nil {
+				must(db.DeletePhone(p.ID))
+			} else {
+				p.Number = number
+				must(db.UpdatePhone(&p))
+			}
+		} else {
+			fmt.Println("No changes required.")
+		}
+	}
+
 	
 
 }

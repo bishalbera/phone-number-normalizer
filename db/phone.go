@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
@@ -108,4 +109,51 @@ func Migrate(driverName, dataSource string) error {
 		return err
 	}
 	return db.Close()
+}
+
+func (db *DB) AllPhones() ([]Phone, error) {
+	rows, err := db.db.Query("SELECT id, value FROM phone_numbers")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ret []Phone
+	for rows.Next() {
+		var p Phone
+		if err := rows.Scan(&p.ID, &p.Number); err != nil {
+			return nil, err
+		}
+		ret = append(ret, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (db *DB) FindPhone(number string) (*Phone, error) {
+	var p Phone
+	row := db.db.QueryRow("SELECT id, value FROM phone_numbers WHERE value=$1", number)
+	err := row.Scan(&p.ID, &p.Number)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			fmt.Println("No phone number found")
+		} else {
+			return nil, err
+		}
+
+	}
+	return &p, nil
+}
+
+func (db *DB) UpdatePhone(p *Phone) error {
+	statement := `UPDATE phone_numbers SET value=$2 WHERE id=$1`
+	_, err := db.db.Exec(statement, p.ID, p.Number)
+	return err
+}
+func (db *DB) DeletePhone(id int) error {
+	statement := `DELETE FROM phone_numbers WHERE id=$1`
+	_, err := db.db.Exec(statement, id)
+	return err
 }
