@@ -15,6 +15,10 @@ type DB struct {
 	db *sql.DB
 }
 
+func (db *DB) Close() error {
+	return db.db.Close()
+}
+
 func Open(driverName, dataSource string) (*DB, error) {
 	db, err := sql.Open("pgx", dataSource)
 	if err != nil {
@@ -25,7 +29,7 @@ func Open(driverName, dataSource string) (*DB, error) {
 }
 
 func createDB(db *sql.DB, name string) error {
-	_, err := db.Exec("CREATE DATABASE" + name)
+	_, err := db.Exec("CREATE DATABASE " + name)
 	if err != nil {
 		return err
 	}
@@ -33,11 +37,11 @@ func createDB(db *sql.DB, name string) error {
 }
 
 func resetDB(db *sql.DB, name string) error {
-	_, err := db.Exec("DROP DATABASE IF EXISTS" + name)
+	_, err := db.Exec("DROP DATABASE IF EXISTS " + name)
 	if err != nil {
 		return err
 	}
-	return nil
+	return createDB(db, name)
 }
 
 func insertPhone(db *sql.DB, phone string) (int, error) {
@@ -72,4 +76,36 @@ func (db *DB) Seed() error {
 	return nil
 }
 
+func createPhoneNumbersTable(db *sql.DB) error {
+	statement := `CREATE TABLE IF NOT EXISTS phone_numbers (
+		id SERIAL, 
+		value VARCHAR(255)
+	)` 
 
+	_, err := db.Exec(statement)
+	return err
+}
+
+func Reset(driverName, dataSource, dbName string) error {
+	db, err := sql.Open(driverName, dataSource)
+	if err != nil {
+		return err
+	}
+	err = resetDB(db, dbName)
+	if err != nil {
+		return err
+	}
+	return db.Close()
+}
+
+func Migrate(driverName, dataSource string) error {
+	db, err := sql.Open(driverName, dataSource)
+	if err != nil {
+		return nil
+	}
+	err = createPhoneNumbersTable(db)
+	if err != nil {
+		return err
+	}
+	return db.Close()
+}
